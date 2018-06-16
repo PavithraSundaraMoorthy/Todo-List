@@ -8,8 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController{
+class CategoryViewController: SwipeTableViewController{
 
     let realm = try! Realm()
     
@@ -19,6 +20,9 @@ class CategoryViewController: UITableViewController{
 //        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         super.viewDidLoad()
         load()
+       // tableView.separatorStyle = .none
+
+       
     }
 
     //MARK: - Add New Category
@@ -34,7 +38,7 @@ class CategoryViewController: UITableViewController{
             
             let newCategory = Category()
             newCategory.name = textField.text!
-            
+            newCategory.color = UIColor.randomFlat.hexValue()
             
             self.save(category: newCategory)
         }
@@ -55,15 +59,22 @@ class CategoryViewController: UITableViewController{
         return categoryList?.count ?? 1
     }
     
+
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
-        
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-      
-        cell.textLabel?.text = categoryList?[indexPath.row].name ?? "No Categories Added yet"
-       
-        cell.accessoryType = .disclosureIndicator
-        
+        if let category = categoryList?[indexPath.row] {
+            
+            cell.textLabel?.text = category.name
+            
+            guard let cellColor = UIColor(hexString: category.color) else{ fatalError()}
+
+            cell.backgroundColor = cellColor
+            cell.textLabel?.textColor = ContrastColorOf(cellColor, returnFlat: true)
+            cell.accessoryType = .disclosureIndicator
+        }
         return cell
         
     }
@@ -111,5 +122,21 @@ class CategoryViewController: UITableViewController{
 
     }
     
-
+    //MARK: - Delete Data from Swipe
+    
+    override func updateModel(at indexPath: IndexPath) {
+        if let categoryDelete = categoryList?[indexPath.row]{
+            do{
+                try self.realm.write {
+                    self.realm.delete(categoryDelete)
+                }
+            }catch{
+                print("Erorr while delete the category, \(error)")
+            }
+            self.tableView.reloadData()
+        }
+    }
 }
+
+//MARK: - Swipe Cell Delegate Methods
+
